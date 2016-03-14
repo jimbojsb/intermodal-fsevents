@@ -5,4 +5,3 @@ ADD rsyncd.conf /etc/rsyncd.conf
 ADD sync.sh /usr/bin
 ADD syncback.sh /usr/bin
 WORKDIR /sync
-CMD

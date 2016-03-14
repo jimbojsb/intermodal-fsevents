@@ -1,0 +1,6 @@
+sync:
+  image: intermodal-sync:0.1
+  ports:  
+  - 5000:5000
+  volumes:
+  - ~/projects:/projects
