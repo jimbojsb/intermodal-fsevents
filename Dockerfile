@@ -1,8 +1,9 @@
 FROM alpine:3.3
-EXPOSE 2873
-RUN apk add --update bash rsync inotify-tools
 ADD rsyncd.conf /etc/rsyncd.conf
-ADD sync.sh /usr/bin
-ADD syncback.sh /usr/bin
-WORKDIR /sync
-CMD /usr/bin/sync.sh
+ADD . /src/inotifystream
+ADD inotifystream.sh /usr/bin
+ADD rsyncd.sh /usr/bin
+RUN apk add --update bash rsync inotify-tools go \
+    && cd /src/inotifystream && GOPATH=/src/inotifystream go build src/inotifystream.go \
+    && cp /src/inotifystream/inotifystream /usr/bin \
+    && apk del go
