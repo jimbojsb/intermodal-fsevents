@@ -1,27 +1,40 @@
-package main;
+package main
 
 import (
+	"bufio"
+	"fmt"
 	"log"
-	"sync"
 	"net"
-	"github.com/rjeczalik/notify"
+	"os/exec"
+	"strings"
+	"sync"
 )
 
 func main() {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	filesModified := make(chan string)
-	inotifyEvents := make(chan notify.EventInfo, 32)
-	if err := notify.Watch("/sync/...", inotifyEvents, notify.All); err != nil {
-		log.Fatal(err)
-	}
-	defer notify.Stop(inotifyEvents)
+	filesModified := make(chan string, 256)
+	fmt.Println("Watching /sync...")
 
 	go func() {
+		cmd := exec.Command("/usr/bin/inotifywait", "-m", "-r", "-e", "modify,create,delete", "/sync")
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			log.Fatal(err)
+		}
+		cmd.Start()
+		r := bufio.NewReader(stdout)
 		for {
-			eventInfo := <- inotifyEvents
-			filesModified <- eventInfo.Path()
+			line, _, err := r.ReadLine()
+			if err != nil {
+				log.Fatal(err)
+			}
+			stringParts := strings.Split(string(line), " ")
+			file := stringParts[0] + stringParts[2]
+			file = file[0:len(file) - 1]
+			fmt.Println(file)
+			filesModified <- file
 		}
 	}()
 
@@ -35,7 +48,7 @@ func main() {
 			log.Fatal(err)
 		}
 		for {
-			file := <- filesModified
+			file := <-filesModified
 			file += "\n"
 			_, err = conn.Write([]byte(file))
 			if err != nil {
